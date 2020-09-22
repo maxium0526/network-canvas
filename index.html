@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<script src="socket.io.js"></script>
+	<script type="text/javascript">
+		
+	</script>
+</head>
+<body style="background-color: #eeeeee;">
+	<div style="float:left">
+		<canvas id="canvas" width="1800" height="900" style="background-color: #ffffff; cursor:crosshair"> </canvas>
+	</div>
+	<div style="float:left; margin:8px;">
+		<input type="color" id="color"><br>
+		<input type="number" id="width" max="10" min="1" step="1" value="3">
+		<pre>type 
+clear()
+to
+clear</pre>
+	</div>
+	
+	<script type="text/javascript">
+		var socket = io("http://127.0.0.1:3000");
+		var canvas = document.getElementById("canvas");
+		var ctx = canvas.getContext("2d");
+		ctx.lineCap = "round";
+		var color = document.getElementById("color");
+		// var width = document.getElementById("width");
+		window.width = 3;
+		var	prvPosi = {x:0,y:0},
+			posi = {x:0,y:0};
+
+		var id = 0;
+
+		var drawBuffer = [];
+		var cCanvasMap = [];
+
+		var	commTimer = setInterval(communicate, 10);
+		// var mouseTimer = setInterval(refreshMousePosi, 10);
+		socket.emit("getDraws",id);
+
+		socket.on("returnDraws",(reutrnDrawBuffer)=>{
+			for(let draw of reutrnDrawBuffer){
+				id = draw.id>id?draw.id:id;
+				ctx.strokeStyle = draw.color;
+				ctx.lineWidth = draw.width;
+				ctx.beginPath();
+				ctx.moveTo(draw.x1,draw.y1);
+				ctx.lineTo(draw.x2, draw.y2);
+				ctx.stroke();
+			}
+			
+		});
+
+		socket.on("clearDraws",()=>{
+			ctx.clearRect(0,0,canvas.width,canvas.height);
+			id=0;
+		})
+		
+		// document.addEventListener('click', draw);
+		canvas.addEventListener('mousemove', mousemoveEvent);
+		//canvas.addEventListener('touchmove', touchmoveEvent);
+		// canvas.addEventListener('mouseout',()=>{prvPosi=null;});
+		// document.addEventListener('mouseup', draw);
+		function mousemoveEvent(e){
+			refreshMousePosi(e);
+			if(e.buttons==1){
+				draw(e);
+			}
+		}
+		// function touchmoveEvent(e){
+		// 	refreshMousePosi(e);
+		// 	// if(e.buttons==1){
+		// 		draw(e);
+		// 	// }
+		// }
+		function draw(e){
+			// if(prvPosi.x != posi.x && prvPosi.y != posi.y){
+				drawBuffer.push({	x1:prvPosi.x, y1: prvPosi.y,
+									x2:posi.x, y2: posi.y,
+									color: color.value,
+									width: width,
+									type:1
+								});	
+
+			// }
+		}
+
+		function getMousePosi(canvas,e){
+			var canvasPosi = canvas.getBoundingClientRect();
+			var x = e.clientX - canvasPosi.left;
+			var y = e.clientY - canvasPosi.top;
+			
+			return {x: x, y: y};
+		}
+
+		function communicate(){
+			if(drawBuffer.length>0){
+				socket.emit("draw", drawBuffer);
+				drawBuffer = [];
+			}
+			// socket.emit("getDraws",id);
+			
+		}
+
+		function refreshMousePosi(e){
+			prvPosi = posi;
+			posi = getMousePosi(canvas,e);
+		}
+
+		function difference(arg1, arg2){
+			var result = [];
+			for(let i =0; i<arg1.length;i++){
+				for(let j=0; j<arg1[i].length;j++){
+					if(arg1[i][j] != arg2[i][j]){
+						result.push([j,i]);
+					}
+				}
+			}
+			return result;
+		}
+		//----testing
+		window.clear = function(){
+			socket.emit("clearDraws",);
+		}
+	</script>
+	<script type="text/javascript">
+
+	</script>
+</body>
+</html>
